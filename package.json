@@ -1,6 +1,6 @@
 {
   "name": "media-server",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Media server",
   "keywords": [
     "node",
@@ -25,6 +25,9 @@
   "dependencies": {
     "dotenv": "^18.0.3",
     "express": "^5.2.1",
-    "express-basic-auth": "^1.2.1"
+    "express-basic-auth": "^1.2.1",
+    "multer": "^2.4.0",
+    "sharp": "^0.35.4",
+    "systeminformation": "^5.33.13"
   }
 }

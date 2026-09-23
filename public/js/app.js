@@ -23,6 +23,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const currentPhotoAlbumTitle = document.getElementById('currentPhotoAlbumTitle');
   const backToPhotoAlbumsBtn = document.getElementById('backToPhotoAlbumsBtn');
 
+  const uploadForm = document.getElementById('uploadForm');
+  const uploadStatus = document.getElementById('uploadStatus');
+
   const modalPreviewImg = document.getElementById('modalPreviewImg');
   const modalImageTitle = document.getElementById('modalImageTitle');
   
@@ -66,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       let visual = '';
       if (type === 'photos') {
-        visual = `<img src="/media/photos/${encodeURIComponent(album.name)}/${encodeURIComponent(album.cover)}" class="gallery-img card-img-top" alt="${album.name}" loading="lazy">`;
+        visual = `<img src="/api/thumb/${encodeURIComponent(album.name)}/${encodeURIComponent(album.cover)}" class="gallery-img card-img-top" alt="${album.name}" loading="lazy">`;
       } else {
         visual = `<div class="album-icon-wrapper card-img-top">${getIcon(type)}</div>`;
       }
@@ -93,6 +96,9 @@ document.addEventListener('DOMContentLoaded', () => {
     videoPlayer.src = '';
     videoTitle.textContent = 'Wybierz film z listy';
 
+    const oldTracks = videoPlayer.querySelectorAll('track');
+    oldTracks.forEach(track => track.remove());
+
     album.items.forEach((filename) => {
       const item = document.createElement('button');
       item.type = 'button';
@@ -102,7 +108,32 @@ document.addEventListener('DOMContentLoaded', () => {
       item.addEventListener('click', () => {
         setActiveItem(videoList, item);
         videoTitle.textContent = filename;
+        
+        const existingTrack = videoPlayer.querySelector('track');
+        if (existingTrack) {
+          existingTrack.remove();
+        }
+
+        const baseNameMatch = filename.substring(0, filename.lastIndexOf('.'));
+        const subFile = album.subs.find(s => s.startsWith(baseNameMatch) && s.endsWith('.vtt'));
+        
+        if (subFile) {
+          const trackElem = document.createElement('track');
+          trackElem.kind = 'subtitles';
+          trackElem.label = 'Napisy';
+          trackElem.srclang = 'pl';
+          trackElem.src = `/media/videos/${encodeURIComponent(album.name)}/${encodeURIComponent(subFile)}`;
+          trackElem.default = true;
+          videoPlayer.appendChild(trackElem);
+        }
+
         videoPlayer.src = `/stream/videos/${encodeURIComponent(album.name)}/${encodeURIComponent(filename)}`;
+        
+        const savedTime = localStorage.getItem(`vidTime_${filename}`);
+        if (savedTime) {
+          videoPlayer.currentTime = parseFloat(savedTime);
+        }
+        
         videoPlayer.play().catch(e => console.error(e));
       });
 
@@ -158,11 +189,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const card = document.createElement('div');
       card.className = 'card bg-dark border-0 gallery-card media-card h-100 shadow-sm';
 
-      const photoUrl = `/media/photos/${encodeURIComponent(album.name)}/${encodeURIComponent(filename)}`;
+      const thumbUrl = `/api/thumb/${encodeURIComponent(album.name)}/${encodeURIComponent(filename)}`;
+      const fullUrl = `/media/photos/${encodeURIComponent(album.name)}/${encodeURIComponent(filename)}`;
 
       const img = document.createElement('img');
       img.className = 'gallery-img card-img-top';
-      img.src = photoUrl;
+      img.src = thumbUrl;
       img.alt = filename;
       img.loading = 'lazy';
 
@@ -176,7 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       card.addEventListener('click', () => {
         if (photoModal) {
-          modalPreviewImg.src = photoUrl;
+          modalPreviewImg.src = fullUrl;
           modalImageTitle.textContent = `${album.name} / ${filename}`;
           photoModal.show();
         }
@@ -192,8 +224,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const items = musicList.querySelectorAll('button');
       
       items.forEach((item) => {
-        const fileName = item.dataset.filename || '';
-        if (fileName.includes(query)) {
+        const fileNameData = item.dataset.filename || '';
+        if (fileNameData.includes(query)) {
           item.style.setProperty('display', 'block', 'important');
         } else {
           item.style.setProperty('display', 'none', 'important');
@@ -227,6 +259,24 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  if (videoPlayer) {
+    let saveTimeTimeout;
+    videoPlayer.addEventListener('timeupdate', () => {
+      clearTimeout(saveTimeTimeout);
+      saveTimeTimeout = setTimeout(() => {
+        const currentSrcUrl = videoPlayer.currentSrc;
+        if (currentSrcUrl && videoPlayer.currentTime > 0) {
+          const decodedUrlString = decodeURIComponent(currentSrcUrl);
+          const partsArray = decodedUrlString.split('/');
+          const fName = partsArray[partsArray.length - 1];
+          if (fName) {
+            localStorage.setItem(`vidTime_${fName}`, videoPlayer.currentTime);
+          }
+        }
+      }, 2000);
+    });
+  }
+
   if (backToVideoAlbumsBtn) {
     backToVideoAlbumsBtn.addEventListener('click', () => {
       videoInsideAlbumView.classList.add('d-none');
@@ -250,6 +300,71 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  if (uploadForm) {
+    uploadForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData();
+      const typeVal = document.getElementById('uploadType').value;
+      const albumVal = document.getElementById('uploadAlbum').value;
+      const filesNode = document.getElementById('uploadFiles');
+      
+      formData.append('mediaType', typeVal);
+      formData.append('albumName', albumVal);
+      
+      for (let i = 0; i < filesNode.files.length; i++) {
+        formData.append('files', filesNode.files[i]);
+      }
+      
+      try {
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (res.ok) {
+          uploadStatus.classList.remove('d-none');
+          uploadForm.reset();
+          setTimeout(() => {
+            uploadStatus.classList.add('d-none');
+            loadMedia();
+          }, 3000);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    });
+  }
+
+  const fetchSysInfo = async () => {
+    try {
+      const res = await fetch('/api/sysinfo');
+      const data = await res.json();
+      
+      const tempElement = document.getElementById('sysCpuTemp');
+      const ramElement = document.getElementById('sysRamUsage');
+      const storageElement = document.getElementById('sysStorage');
+      
+      if (tempElement && data.cpu) {
+        tempElement.textContent = `${data.cpu.main || 0} °C`;
+      }
+      
+      if (ramElement && data.mem) {
+        const usedRam = (data.mem.active / (1024 ** 3)).toFixed(2);
+        const totalRam = (data.mem.total / (1024 ** 3)).toFixed(2);
+        ramElement.textContent = `${usedRam} GB / ${totalRam} GB`;
+      }
+      
+      if (storageElement && data.fsSize && data.fsSize.length > 0) {
+        const mainDrive = data.fsSize[0];
+        const usedStorage = (mainDrive.used / (1024 ** 3)).toFixed(2);
+        const totalStorage = (mainDrive.size / (1024 ** 3)).toFixed(2);
+        storageElement.textContent = `${usedStorage} GB / ${totalStorage} GB`;
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const loadMedia = async () => {
     try {
       const response = await fetch('/api/media');
@@ -263,5 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  fetchSysInfo();
+  setInterval(fetchSysInfo, 10000);
   loadMedia();
 });
