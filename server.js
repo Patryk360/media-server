@@ -1,11 +1,24 @@
+require('dotenv').config();
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const mime = require('mime-types');
+const basicAuth = require('express-basic-auth');
 
 const app = express();
-const PORT = 8080;
+const serverPort = process.env.PORT || 8080;
 const mediaDir = path.join(__dirname, 'media');
+const authUser = process.env.ADMIN_USERNAME || 'admin';
+const authPass = process.env.ADMIN_PASSWORD || 'admin';
+
+const authUsers = {};
+authUsers[authUser] = authPass;
+
+app.use(basicAuth({
+  users: authUsers,
+  challenge: true,
+  realm: 'RPi5MediaCenter'
+}));
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/media/photos', express.static(path.join(mediaDir, 'photos')));
@@ -87,6 +100,6 @@ app.get('/stream/:type/:album/:filename', (req, res) => {
   }
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server listening on port ${PORT}`);
+app.listen(serverPort, '0.0.0.0', () => {
+  console.log(`Server listening on port ${serverPort}`);
 });
