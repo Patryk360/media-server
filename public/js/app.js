@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setActiveItem(videoList, item);
         videoTitle.textContent = filename;
         videoPlayer.src = `/stream/videos/${encodeURIComponent(album.name)}/${encodeURIComponent(filename)}`;
-        videoPlayer.play();
+        videoPlayer.play().catch(e => console.error("Błąd wideo:", e));
       });
 
       videoList.appendChild(item);
@@ -125,7 +125,13 @@ document.addEventListener('DOMContentLoaded', () => {
         setActiveItem(musicList, item);
         audioTitle.textContent = filename;
         audioPlayer.src = `/stream/music/${encodeURIComponent(album.name)}/${encodeURIComponent(filename)}`;
-        audioPlayer.play();
+        
+        const playPromise = audioPlayer.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(error => {
+            console.error("Autoplay zablokowany lub błąd źródła:", error);
+          });
+        }
       });
 
       musicList.appendChild(item);
@@ -173,13 +179,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   musicSearchInput.addEventListener('input', (e) => {
     const query = e.target.value.toLowerCase();
-    const items = musicList.getElementsByTagName('button');
+    const items = musicList.querySelectorAll('button');
     
-    Array.from(items).forEach((item) => {
+    items.forEach((item) => {
       if (item.textContent.toLowerCase().includes(query)) {
-        item.style.display = '';
+        item.classList.remove('d-none');
       } else {
-        item.style.display = 'none';
+        item.classList.add('d-none');
       }
     });
   });
@@ -190,7 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (activeItem) {
         let nextItem = activeItem.nextElementSibling;
         
-        while (nextItem && nextItem.style.display === 'none') {
+        while (nextItem && nextItem.classList.contains('d-none')) {
           nextItem = nextItem.nextElementSibling;
         }
         
