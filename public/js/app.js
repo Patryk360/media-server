@@ -28,10 +28,108 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const modalPreviewImg = document.getElementById('modalPreviewImg');
   const modalImageTitle = document.getElementById('modalImageTitle');
+  const photoModalElement = document.getElementById('photoModal');
   
   let photoModal;
-  if (document.getElementById('photoModal')) {
-    photoModal = new bootstrap.Modal(document.getElementById('photoModal'));
+  if (photoModalElement) {
+    photoModal = new bootstrap.Modal(photoModalElement);
+  }
+
+  let currentScale = 1;
+  let isPanning = false;
+  let startX = 0;
+  let startY = 0;
+  let translateX = 0;
+  let translateY = 0;
+
+  if (modalPreviewImg) {
+    modalPreviewImg.style.transition = 'none';
+    modalPreviewImg.style.cursor = 'grab';
+    modalPreviewImg.style.maxHeight = '85vh';
+    modalPreviewImg.style.objectFit = 'contain';
+
+    const zoomContainer = modalPreviewImg.parentElement;
+    zoomContainer.style.overflow = 'hidden';
+    zoomContainer.style.display = 'flex';
+    zoomContainer.style.alignItems = 'center';
+    zoomContainer.style.justifyContent = 'center';
+
+    const updateImageTransform = () => {
+      modalPreviewImg.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentScale})`;
+    };
+
+    zoomContainer.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const zoomStep = 0.15;
+      
+      if (e.deltaY < 0) {
+        currentScale += zoomStep;
+      } else {
+        currentScale -= zoomStep;
+      }
+      
+      currentScale = Math.min(Math.max(1, currentScale), 5);
+      
+      if (currentScale === 1) {
+        translateX = 0;
+        translateY = 0;
+      }
+      
+      updateImageTransform();
+    }, { passive: false });
+
+    zoomContainer.addEventListener('mousedown', (e) => {
+      if (currentScale > 1) {
+        e.preventDefault();
+        isPanning = true;
+        startX = e.clientX - translateX;
+        startY = e.clientY - translateY;
+        modalPreviewImg.style.cursor = 'grabbing';
+      }
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isPanning) return;
+      translateX = e.clientX - startX;
+      translateY = e.clientY - startY;
+      updateImageTransform();
+    });
+
+    window.addEventListener('mouseup', () => {
+      isPanning = false;
+      modalPreviewImg.style.cursor = 'grab';
+    });
+
+    zoomContainer.addEventListener('touchstart', (e) => {
+      if (currentScale > 1 && e.touches.length === 1) {
+        isPanning = true;
+        startX = e.touches[0].clientX - translateX;
+        startY = e.touches[0].clientY - translateY;
+      }
+    }, { passive: false });
+
+    zoomContainer.addEventListener('touchmove', (e) => {
+      if (!isPanning) return;
+      e.preventDefault();
+      translateX = e.touches[0].clientX - startX;
+      translateY = e.touches[0].clientY - startY;
+      updateImageTransform();
+    }, { passive: false });
+
+    zoomContainer.addEventListener('touchend', () => {
+      isPanning = false;
+    });
+  }
+
+  if (photoModalElement) {
+    photoModalElement.addEventListener('hidden.bs.modal', () => {
+      currentScale = 1;
+      translateX = 0;
+      translateY = 0;
+      if (modalPreviewImg) {
+        modalPreviewImg.style.transform = 'translate(0px, 0px) scale(1)';
+      }
+    });
   }
 
   const setActiveItem = (listElement, activeBtn) => {
