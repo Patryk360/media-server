@@ -4,7 +4,7 @@ const path = require('path');
 const mime = require('mime-types');
 
 const app = express();
-const PORT = 3000;
+const PORT = 8080;
 const mediaDir = path.join(__dirname, 'media');
 
 app.use(express.static(path.join(__dirname, 'public')));
