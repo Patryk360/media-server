@@ -25,7 +25,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const modalPreviewImg = document.getElementById('modalPreviewImg');
   const modalImageTitle = document.getElementById('modalImageTitle');
-  const photoModal = new bootstrap.Modal(document.getElementById('photoModal'));
+  
+  let photoModal;
+  if (document.getElementById('photoModal')) {
+    photoModal = new bootstrap.Modal(document.getElementById('photoModal'));
+  }
 
   const setActiveItem = (listElement, activeBtn) => {
     Array.from(listElement.children).forEach((btn) => btn.classList.remove('active'));
@@ -99,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setActiveItem(videoList, item);
         videoTitle.textContent = filename;
         videoPlayer.src = `/stream/videos/${encodeURIComponent(album.name)}/${encodeURIComponent(filename)}`;
-        videoPlayer.play().catch(e => console.error("Błąd wideo:", e));
+        videoPlayer.play().catch(e => console.error(e));
       });
 
       videoList.appendChild(item);
@@ -113,13 +117,18 @@ document.addEventListener('DOMContentLoaded', () => {
     musicList.innerHTML = '';
     audioPlayer.src = '';
     audioTitle.textContent = 'Wybierz utwór do odtworzenia';
-    musicSearchInput.value = '';
+    
+    if (musicSearchInput) {
+      musicSearchInput.value = '';
+    }
 
     album.items.forEach((filename) => {
       const item = document.createElement('button');
       item.type = 'button';
       item.className = 'list-group-item list-group-item-action text-truncate';
       item.textContent = filename;
+      
+      item.dataset.filename = filename.toLowerCase();
 
       item.addEventListener('click', () => {
         setActiveItem(musicList, item);
@@ -128,9 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const playPromise = audioPlayer.play();
         if (playPromise !== undefined) {
-          playPromise.catch(error => {
-            console.error("Autoplay zablokowany lub błąd źródła:", error);
-          });
+          playPromise.catch(error => console.error(error));
         }
       });
 
@@ -168,61 +175,80 @@ document.addEventListener('DOMContentLoaded', () => {
       col.appendChild(card);
 
       card.addEventListener('click', () => {
-        modalPreviewImg.src = photoUrl;
-        modalImageTitle.textContent = `${album.name} / ${filename}`;
-        photoModal.show();
+        if (photoModal) {
+          modalPreviewImg.src = photoUrl;
+          modalImageTitle.textContent = `${album.name} / ${filename}`;
+          photoModal.show();
+        }
       });
 
       photoGallery.appendChild(col);
     });
   };
 
-  musicSearchInput.addEventListener('input', (e) => {
-    const query = e.target.value.toLowerCase();
-    const items = musicList.querySelectorAll('button');
-    
-    items.forEach((item) => {
-      if (item.textContent.toLowerCase().includes(query)) {
-        item.classList.remove('d-none');
-      } else {
-        item.classList.add('d-none');
+  if (musicSearchInput) {
+    musicSearchInput.addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase().trim();
+      const items = musicList.querySelectorAll('button');
+      
+      items.forEach((item) => {
+        const fileName = item.dataset.filename || '';
+        if (fileName.includes(query)) {
+          item.style.setProperty('display', 'block', 'important');
+        } else {
+          item.style.setProperty('display', 'none', 'important');
+        }
+      });
+    });
+  }
+
+  if (audioPlayer) {
+    audioPlayer.addEventListener('ended', () => {
+      if (autoplaySwitch && autoplaySwitch.checked) {
+        const activeItem = musicList.querySelector('.active');
+        if (activeItem) {
+          let nextItem = activeItem.nextElementSibling;
+          
+          while (nextItem) {
+            const computedStyle = window.getComputedStyle(nextItem).display;
+            const inlineStyle = nextItem.style.display;
+            
+            if (computedStyle !== 'none' && inlineStyle !== 'none') {
+              break;
+            }
+            nextItem = nextItem.nextElementSibling;
+          }
+          
+          if (nextItem) {
+            nextItem.click();
+          }
+        }
       }
     });
-  });
+  }
 
-  audioPlayer.addEventListener('ended', () => {
-    if (autoplaySwitch.checked) {
-      const activeItem = musicList.querySelector('.active');
-      if (activeItem) {
-        let nextItem = activeItem.nextElementSibling;
-        
-        while (nextItem && nextItem.classList.contains('d-none')) {
-          nextItem = nextItem.nextElementSibling;
-        }
-        
-        if (nextItem) {
-          nextItem.click();
-        }
-      }
-    }
-  });
+  if (backToVideoAlbumsBtn) {
+    backToVideoAlbumsBtn.addEventListener('click', () => {
+      videoInsideAlbumView.classList.add('d-none');
+      videoAlbumsView.classList.remove('d-none');
+      videoPlayer.pause();
+    });
+  }
 
-  backToVideoAlbumsBtn.addEventListener('click', () => {
-    videoInsideAlbumView.classList.add('d-none');
-    videoAlbumsView.classList.remove('d-none');
-    videoPlayer.pause();
-  });
+  if (backToMusicAlbumsBtn) {
+    backToMusicAlbumsBtn.addEventListener('click', () => {
+      musicInsideAlbumView.classList.add('d-none');
+      musicAlbumsView.classList.remove('d-none');
+      audioPlayer.pause();
+    });
+  }
 
-  backToMusicAlbumsBtn.addEventListener('click', () => {
-    musicInsideAlbumView.classList.add('d-none');
-    musicAlbumsView.classList.remove('d-none');
-    audioPlayer.pause();
-  });
-
-  backToPhotoAlbumsBtn.addEventListener('click', () => {
-    photosInsideAlbumView.classList.add('d-none');
-    photoAlbumsView.classList.remove('d-none');
-  });
+  if (backToPhotoAlbumsBtn) {
+    backToPhotoAlbumsBtn.addEventListener('click', () => {
+      photosInsideAlbumView.classList.add('d-none');
+      photoAlbumsView.classList.remove('d-none');
+    });
+  }
 
   const loadMedia = async () => {
     try {
