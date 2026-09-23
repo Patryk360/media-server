@@ -14,6 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const musicInsideAlbumView = document.getElementById('musicInsideAlbumView');
   const currentMusicAlbumTitle = document.getElementById('currentMusicAlbumTitle');
   const backToMusicAlbumsBtn = document.getElementById('backToMusicAlbumsBtn');
+  const musicSearchInput = document.getElementById('musicSearchInput');
+  const autoplaySwitch = document.getElementById('autoplaySwitch');
 
   const photoGallery = document.getElementById('photoGallery');
   const photoAlbumsView = document.getElementById('photoAlbumsView');
@@ -111,6 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
     musicList.innerHTML = '';
     audioPlayer.src = '';
     audioTitle.textContent = 'Wybierz utwór do odtworzenia';
+    musicSearchInput.value = '';
 
     album.items.forEach((filename) => {
       const item = document.createElement('button');
@@ -167,6 +170,36 @@ document.addEventListener('DOMContentLoaded', () => {
       photoGallery.appendChild(col);
     });
   };
+
+  musicSearchInput.addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase();
+    const items = musicList.getElementsByTagName('button');
+    
+    Array.from(items).forEach((item) => {
+      if (item.textContent.toLowerCase().includes(query)) {
+        item.style.display = '';
+      } else {
+        item.style.display = 'none';
+      }
+    });
+  });
+
+  audioPlayer.addEventListener('ended', () => {
+    if (autoplaySwitch.checked) {
+      const activeItem = musicList.querySelector('.active');
+      if (activeItem) {
+        let nextItem = activeItem.nextElementSibling;
+        
+        while (nextItem && nextItem.style.display === 'none') {
+          nextItem = nextItem.nextElementSibling;
+        }
+        
+        if (nextItem) {
+          nextItem.click();
+        }
+      }
+    }
+  });
 
   backToVideoAlbumsBtn.addEventListener('click', () => {
     videoInsideAlbumView.classList.add('d-none');

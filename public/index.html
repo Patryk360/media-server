@@ -81,6 +81,13 @@
             </div>
           </div>
           <div class="card bg-dark border-0 p-3">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <input type="text" id="musicSearchInput" class="form-control bg-dark text-white border-secondary w-50" placeholder="Szukaj utworu...">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="autoplaySwitch" checked>
+                <label class="form-check-label text-white text-nowrap" for="autoplaySwitch">Graj następny</label>
+              </div>
+            </div>
             <div class="list-group media-list-group" id="musicList"></div>
           </div>
         </div>
