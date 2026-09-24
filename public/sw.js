@@ -1,4 +1,4 @@
-const CACHE_NAME = 'media-center-v1';
+const CACHE_NAME = 'media-center-v1.0.2';
 const urlsToCache = [
   '/',
   '/css/style.css',
@@ -16,7 +16,6 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('fetch', event => {
-  // Ignorowanie żądań do API oraz streamingu mediów (nie chcemy cachować pełnych filmów)
   if (event.request.url.includes('/api/') || event.request.url.includes('/stream/')) {
     return;
   }
