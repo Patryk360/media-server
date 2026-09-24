@@ -74,15 +74,17 @@
           
           <div class="card bg-dark border-0 p-4 mb-4 media-card shadow">
             <div class="d-flex flex-column align-items-center text-center">
-              <div class="mb-3 text-primary">
-                <svg width="48" height="48" fill="currentColor" viewBox="0 0 16 16">
+              <img id="musicCoverArt" src="" alt="Cover" class="rounded-circle mb-3 shadow" style="width: 150px; height: 150px; object-fit: cover; display: none;">
+              <div id="musicDefaultIcon" class="mb-3 text-primary">
+                <svg width="64" height="64" fill="currentColor" viewBox="0 0 16 16">
                   <path d="M6 13c0 1.105-1.12 2-2.5 2S1 14.105 1 13s1.12-2 2.5-2 2.5.895 2.5 2"/>
                   <path fill-rule="evenodd" d="M14 11V2h1v9h-1z"/>
                   <path d="M6 3v10H5V3z"/>
                   <path d="M5 2.905a1 1 0 0 1 .9-.995l8-.8A1 1 0 0 1 15 2.1v2.82a1 1 0 0 1-.9.995l-8 .8A1 1 0 0 1 5 5.72z"/>
                 </svg>
               </div>
-              <h4 id="audioTitle" class="fw-bold mb-3 text-truncate w-75"></h4>
+              <h4 id="audioTitle" class="fw-bold mb-1 text-truncate w-100">Wybierz utwór do odtworzenia</h4>
+              <p id="audioArtist" class="text-secondary mb-3 text-truncate w-100">...</p>
               <audio id="mainAudioPlayer" controls class="w-100 mt-2" style="max-width: 600px;"></audio>
             </div>
           </div>
@@ -160,7 +162,7 @@
     </div>
   </div>
 
-<div class="modal fade" id="photoModal" tabindex="-1" aria-hidden="true">
+  <div class="modal fade" id="photoModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-xl">
       <div class="modal-content bg-transparent border-0">
         <div class="modal-header border-0 pb-0">
@@ -180,7 +182,7 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js').catch(err => {
-          console.error('Błąd rejestracji Service Workera:', err);
+          console.error(err);
         });
       });
     }

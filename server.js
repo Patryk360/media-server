@@ -7,6 +7,7 @@ const basicAuth = require('express-basic-auth');
 const multer = require('multer');
 const sharp = require('sharp');
 const si = require('systeminformation');
+const mm = require('music-metadata');
 
 const app = express();
 const serverPort = process.env.PORT || 8080;
@@ -118,6 +119,40 @@ app.get('/api/thumb/:album/:filename', async (req, res) => {
     res.send(buffer);
   } catch (error) {
     res.sendFile(filePath);
+  }
+});
+
+app.get('/api/track-info/:album/:filename', async (req, res) => {
+  const { album, filename } = req.params;
+  const filePath = path.join(mediaDir, 'music', album, filename);
+  if (!fs.existsSync(filePath)) return res.status(404).json({error: 'Not found'});
+  try {
+    const metadata = await mm.parseFile(filePath, { skipCovers: true });
+    res.json({
+      title: metadata.common.title || filename,
+      artist: metadata.common.artist || 'Nieznany wykonawca',
+      album: metadata.common.album || album
+    });
+  } catch (err) {
+    res.json({ title: filename, artist: 'Nieznany wykonawca', album: album });
+  }
+});
+
+app.get('/api/track-cover/:album/:filename', async (req, res) => {
+  const { album, filename } = req.params;
+  const filePath = path.join(mediaDir, 'music', album, filename);
+  if (!fs.existsSync(filePath)) return res.status(404).send('Not found');
+  try {
+    const metadata = await mm.parseFile(filePath, { skipCovers: false });
+    const picture = metadata.common.picture ? metadata.common.picture[0] : null;
+    if (picture) {
+      res.set('Content-Type', picture.format);
+      res.send(picture.data);
+    } else {
+      res.status(404).send('No cover');
+    }
+  } catch (err) {
+    res.status(404).send('Error');
   }
 });
 

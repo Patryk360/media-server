@@ -9,6 +9,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const audioPlayer = document.getElementById('mainAudioPlayer');
   const audioTitle = document.getElementById('audioTitle');
+  const audioArtist = document.getElementById('audioArtist');
+  const musicCoverArt = document.getElementById('musicCoverArt');
+  const musicDefaultIcon = document.getElementById('musicDefaultIcon');
   const musicList = document.getElementById('musicList');
   const musicAlbumsView = document.getElementById('musicAlbumsView');
   const musicInsideAlbumView = document.getElementById('musicInsideAlbumView');
@@ -246,7 +249,14 @@ document.addEventListener('DOMContentLoaded', () => {
     musicList.innerHTML = '';
     audioPlayer.src = '';
     audioTitle.textContent = 'Wybierz utwór do odtworzenia';
+    if (audioArtist) audioArtist.textContent = '...';
     
+    if (musicCoverArt && musicDefaultIcon) {
+      musicCoverArt.style.display = 'none';
+      musicDefaultIcon.style.display = 'block';
+      musicCoverArt.src = '';
+    }
+
     if (musicSearchInput) {
       musicSearchInput.value = '';
     }
@@ -259,14 +269,40 @@ document.addEventListener('DOMContentLoaded', () => {
       
       item.dataset.filename = filename.toLowerCase();
 
-      item.addEventListener('click', () => {
+      item.addEventListener('click', async () => {
         setActiveItem(musicList, item);
-        audioTitle.textContent = filename;
+        audioTitle.textContent = 'Ładowanie...';
+        if (audioArtist) audioArtist.textContent = '...';
+        
+        if (musicCoverArt && musicDefaultIcon) {
+          musicCoverArt.style.display = 'none';
+          musicDefaultIcon.style.display = 'block';
+          musicCoverArt.src = '';
+        }
+
         audioPlayer.src = `/stream/music/${encodeURIComponent(album.name)}/${encodeURIComponent(filename)}`;
         
         const playPromise = audioPlayer.play();
         if (playPromise !== undefined) {
           playPromise.catch(error => console.error(error));
+        }
+
+        try {
+          const infoRes = await fetch(`/api/track-info/${encodeURIComponent(album.name)}/${encodeURIComponent(filename)}`);
+          const info = await infoRes.json();
+          audioTitle.textContent = info.title;
+          if (audioArtist) audioArtist.textContent = info.artist;
+
+          const coverUrl = `/api/track-cover/${encodeURIComponent(album.name)}/${encodeURIComponent(filename)}`;
+          const coverRes = await fetch(coverUrl, { method: 'HEAD' });
+          if (coverRes.ok && musicCoverArt && musicDefaultIcon) {
+            musicCoverArt.src = coverUrl;
+            musicCoverArt.style.display = 'block';
+            musicDefaultIcon.style.display = 'none';
+          }
+        } catch (err) {
+          audioTitle.textContent = filename;
+          if (audioArtist) audioArtist.textContent = 'Nieznany wykonawca';
         }
       });
 
